@@ -103,3 +103,129 @@ class bottom:
             for k in range(0,i):
                 self.blocks[j][i-k]=self.blocks[j][i-1-k]
             self.blocks[j][0] = 0
+            
+    class tetris:
+
+    def init(self, shape):
+        self.shape=shape
+        self.pos=[0,0]
+        self.shape_position=copy.deepcopy(self.shape)
+
+    def  update_shapeposition(self):
+        for i in range(4):
+            for j in range(2):
+                self.shape_position[i][j]=self.shape[i][j]+self.pos[j]
+
+    def rotation(self):
+        temp=copy.deepcopy(self)
+        for i in range(4):
+            temp.shape[i][0]=self.shape[i][1]
+            temp.shape[i][1]=-self.shape[i][0]-1
+        temp.update_shapeposition()
+        return temp
+
+    def position(self, x,y):
+        temp=copy.deepcopy(self)
+        temp.pos=[x,y]
+        temp.update_shapeposition()
+        return temp
+
+    def draw(self, screen, color):
+        for i in range(4):
+            temp=self.shape_position[i]+[1,1]
+            temp=[x * blocksize for x in temp]
+            pygame.draw.rect(screen, color, temp)
+
+    def future_draw(self,screen,color,coordinates):
+        for i in range(4):
+            temp=[self.shape[i][0]+coordinates[0],self.shape[i][1]+coordinates[1]]
+            temp=temp+[1,1]
+            temp=[x * blocksize for x in temp]
+            pygame.draw.rect(screen, color, temp)
+
+
+    def collision_R(self,x,y,bottom_stack):
+        temp=self.position(x,y)
+        index=0
+        for i in range(4):
+            if temp.shape_position[i][0]>=dimension[1]:
+                index=1
+                break
+            elif temp.shape_position[i][0]>=0 and temp.shape_position[i][1]>=0:
+                if bottom_stack.blocks[temp.shape_position[i][0]][temp.shape_position[i][1]] == 1:
+                    index = 1
+                    break
+        if index==1:
+            return True
+        else:
+            return False
+
+    def collision_L(self,x,y,bottom_stack):
+        temp=self.position(x,y)
+        index=0
+        for i in range(4):
+            if temp.shape_position[i][0]<=-1:
+                index=1
+                break
+            elif temp.shape_position[i][0] >= 0 and temp.shape_position[i][1] >= 0:
+                if bottom_stack.blocks[temp.shape_position[i][0]][temp.shape_position[i][1]] == 1:
+                    index = 1
+                    break
+        if index==1:
+            return True
+        else:
+            return False
+
+    def collision_bottom_stack(self,x,y,bottom_stack):
+        temp = self.position(x, y)
+        index=0
+        for i in range(4):
+            if temp.shape_position[i][0]>=0 and temp.shape_position[i][1]>=0:
+                if bottom_stack.blocks[temp.shape_position[i][0]][temp.shape_position[i][1]]==1:
+                    index=1
+        if index == 1:
+            return True
+        else:
+            return False
+
+def input_treatment(event,done, dead,tetris_piece,x_coord, y_coord, y_coord_for_showing,  x_speed, y_speed, bottom_blocks):
+    if event.type == pygame.QUIT:  
+        done = True  
+        dead = True
+    elif event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_LEFT:
+            x_speed = -1
+        elif event.key == pygame.K_RIGHT:
+            x_speed = 1
+        elif event.key == pygame.K_UP:
+            temp = tetris_piece.rotation()
+            if not temp.collision_R(x_coord, y_coord_for_showing, bottom_blocks) and not temp.collision_L(x_coord, y_coord_for_showing, bottom_blocks):
+                tetris_piece = tetris_piece.rotation()
+        elif event.key == pygame.K_SPACE:
+            for i in range(y_coord_for_showing, dimension[0]):
+                if tetris_piece.collision_bottom_stack(x_coord, i, bottom_blocks):
+                    y_coord = i
+                    break
+                else:
+                    y_coord = dimension[0]
+        elif event.key == pygame.K_DOWN:
+            y_speed += 1
+
+    elif event.type == pygame.KEYUP:
+        if event.key == pygame.K_LEFT:
+            x_speed = 0
+        elif event.key == pygame.K_RIGHT:
+            x_speed = 0
+        elif event.key == pygame.K_DOWN:
+            y_speed -= 1
+    return done , dead, tetris_piece,y_coord,x_speed, y_speed
+
+def update_x_and_y_coordinates_after_checking_collision(tetris_piece,x_coord, y_coord, y_coord_for_showing, x_speed, y_speed, bottom_blocks):
+    x_coord = x_coord + x_speed
+    while tetris_piece.collision_R(x_coord, y_coord_for_showing, bottom_blocks) and x_speed == 1:
+        x_coord = x_coord - 1
+    while tetris_piece.collision_L(x_coord, y_coord_for_showing, bottom_blocks) and x_speed == -1:
+        x_coord = x_coord + 1
+    y_coord = y_coord + y_speed
+    y_coord_for_showing = int(y_coord // 1)
+    return x_coord, y_coord, y_coord_for_showing
